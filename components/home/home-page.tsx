@@ -40,11 +40,13 @@ import {
   Check,
   Shield,
   Loader2,
+  Bug,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import Link from "next/link"
 import useSWR from "swr"
+import { ConnectionDiagnostic } from "@/components/debug/connection-diagnostic"
 
 interface HomePageProps {
   profile: Profile
@@ -57,8 +59,8 @@ export function HomePage({ profile }: HomePageProps) {
   const [showAIGame, setShowAIGame] = useState(false)
   const [roomCode, setRoomCode] = useState("")
   const [createdRoomCode, setCreatedRoomCode] = useState("")
-  const [aiDifficulty, setAiDifficulty] = useState<"easy" | "medium" | "hard">(
-    "medium"
+  const [aiDifficulty, setAiDifficulty] = useState<"facil" | "medio" | "dificil">(
+    "medio"
   )
   const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -361,28 +363,28 @@ export function HomePage({ profile }: HomePageProps) {
                     <Select
                       value={aiDifficulty}
                       onValueChange={(v) =>
-                        setAiDifficulty(v as "easy" | "medium" | "hard")
+                        setAiDifficulty(v as "facil" | "medio" | "dificil")
                       }
                     >
                       <SelectTrigger className="bg-input border-border">
                         <SelectValue placeholder="Dificuldade" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="easy">Fácil</SelectItem>
-                        <SelectItem value="medium">Médio</SelectItem>
-                        <SelectItem value="hard">Difícil</SelectItem>
+                        <SelectItem value="facil">Fácil</SelectItem>
+                        <SelectItem value="medio">Médio</SelectItem>
+                        <SelectItem value="dificil">Difícil</SelectItem>
                       </SelectContent>
                     </Select>
                     <div className="text-sm text-muted-foreground">
-                      {aiDifficulty === "easy" && (
+                      {aiDifficulty === "facil" && (
                         <p>A IA fará movimentos básicos, ideal para aprender.</p>
                       )}
-                      {aiDifficulty === "medium" && (
+                      {aiDifficulty === "medio" && (
                         <p>
                           A IA usará estratégias intermediárias para te desafiar.
                         </p>
                       )}
-                      {aiDifficulty === "hard" && (
+                      {aiDifficulty === "dificil" && (
                         <p>
                           A IA usará algoritmos avançados. Prepare-se para um
                           desafio real!
@@ -459,6 +461,9 @@ export function HomePage({ profile }: HomePageProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Connection Diagnostic */}
+          <ConnectionDiagnostic />
         </div>
       </main>
     </div>
