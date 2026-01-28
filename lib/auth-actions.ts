@@ -25,9 +25,6 @@ export async function signUp(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo:
-        process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-        `${baseUrl}/auth/callback`,
       data: {
         username,
         age: age ? parseInt(age) : null,

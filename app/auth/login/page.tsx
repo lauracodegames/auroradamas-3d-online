@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { toast } from "sonner"
-import { Loader2, Gamepad2 } from "lucide-react"
+import { Loader2, Gamepad2, Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberPassword, setRememberPassword] = useState(false)
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true)
@@ -61,15 +63,42 @@ export default function LoginPage() {
             <Label htmlFor="password" className="text-foreground text-sm font-medium">
               Senha
             </Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="Sua senha"
-              required
-              autoComplete="current-password"
-              className="h-12 bg-input border-border text-foreground rounded-xl px-4 text-base"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Sua senha"
+                required
+                autoComplete="current-password"
+                className="h-12 bg-input border-border text-foreground rounded-xl px-4 pr-12 text-base"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between py-2">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberPassword}
+                onChange={(e) => setRememberPassword(e.target.checked)}
+                className="w-4 h-4 text-primary bg-input border-border rounded focus:ring-primary focus:ring-2"
+              />
+              <span className="text-sm text-muted-foreground">Lembrar senha</span>
+            </label>
+            <Link 
+              href="/auth/forgot-password" 
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              Esqueceu sua senha?
+            </Link>
           </div>
 
           <div className="pt-4">

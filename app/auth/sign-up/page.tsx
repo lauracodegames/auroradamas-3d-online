@@ -15,21 +15,33 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Loader2, Gamepad2, ArrowLeft } from "lucide-react"
+import { Loader2, Gamepad2, ArrowLeft, Eye, EyeOff } from "lucide-react"
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true)
+    
+    const password = formData.get("password") as string
+    const confirmPassword = formData.get("confirmPassword") as string
+    
+    if (password !== confirmPassword) {
+      toast.error("As senhas não coincidem")
+      setIsLoading(false)
+      return
+    }
+    
     const result = await signUp(formData)
     if (result?.error) {
       toast.error(result.error)
       setIsLoading(false)
     } else {
-      toast.success("Cadastro realizado! Verifique seu email para confirmar.")
-      router.push("/auth/sign-up-success")
+      toast.success("Cadastro realizado com sucesso!")
+      router.push("/auth/login")
     }
   }
 
@@ -98,16 +110,50 @@ export default function SignUpPage() {
             <Label htmlFor="password" className="text-foreground text-sm font-medium">
               Senha
             </Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="Minimo 6 caracteres"
-              required
-              minLength={6}
-              autoComplete="new-password"
-              className="h-12 bg-input border-border text-foreground rounded-xl px-4 text-base"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Minimo 6 caracteres"
+                required
+                minLength={6}
+                autoComplete="new-password"
+                className="h-12 bg-input border-border text-foreground rounded-xl px-4 pr-12 text-base"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword" className="text-foreground text-sm font-medium">
+              Confirmar Senha
+            </Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Digite a senha novamente"
+                required
+                minLength={6}
+                autoComplete="new-password"
+                className="h-12 bg-input border-border text-foreground rounded-xl px-4 pr-12 text-base"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
