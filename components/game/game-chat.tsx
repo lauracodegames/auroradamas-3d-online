@@ -47,8 +47,11 @@ export function GameChat({ roomId, currentUserId, isMobile = false }: GameChatPr
     const supabase = createClient()
     console.log('Setting up chat subscription for room:', roomId)
     
-    const channel = supabase
-      .channel(`chat:${roomId}`)
+    // Create a unique channel name to avoid conflicts
+    const channelName = `chat_${roomId}_${Date.now()}`
+    const channel = supabase.channel(channelName)
+    
+    channel
       .on(
         "postgres_changes",
         {
@@ -60,45 +63,51 @@ export function GameChat({ roomId, currentUserId, isMobile = false }: GameChatPr
         async (payload) => {
           console.log('New chat message received:', payload)
           try {
-            // Fetch the complete message with user profile
-            const { data } = await supabase
-              .from("chat_messages")
-              .select("*, user:profiles(*)")
-              .eq("id", payload.new.id)
-              .single()
+            // Direct use the payload data instead of re-fetching
+            const messageData = payload.new as any
+            console.log('Message data from payload:', messageData)
             
-            if (data) {
-              console.log('Complete message data:', data)
-              setMessages((prev) => {
-                const newMessages = [...prev, data as ChatMessage]
-                console.log('Updated messages list:', newMessages.length, 'messages')
-                return newMessages
-              })
-            } else {
-              console.error('Failed to fetch complete message data')
+            // Get user profile separately if needed
+            if (messageData.user_id && !messageData.user) {
+              const { data: userData } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", messageData.user_id)
+                .single()
+              
+              messageData.user = userData
             }
+            
+            setMessages((prev) => {
+              const newMessages = [...prev, messageData as ChatMessage]
+              console.log('Updated messages list:', newMessages.length, 'messages')
+              return newMessages
+            })
           } catch (error) {
             console.error('Error processing new message:', error)
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('Chat subscription status:', status)
+        if (err) {
+          console.error('Chat subscription error:', err)
+        }
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to chat updates')
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Failed to subscribe to chat updates')
-          toast.error('Erro de conexão com o chat')
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          console.error('Failed to subscribe to chat updates, status:', status)
+          // Don't show error toast immediately, let the polling handle it
         }
       })
 
-    // Fallback: Refresh messages every 5 seconds in case realtime fails
+    // Fallback: Refresh messages every 3 seconds in case realtime fails
     const interval = setInterval(() => {
       loadMessages()
-    }, 5000)
+    }, 3000)
 
     return () => {
-      console.log('Cleaning up chat subscription')
+      console.log('Cleaning up chat subscription:', channelName)
       supabase.removeChannel(channel)
       clearInterval(interval)
     }

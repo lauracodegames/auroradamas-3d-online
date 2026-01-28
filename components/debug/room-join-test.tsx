@@ -65,14 +65,22 @@ export function RoomJoinTest() {
 
       const result = await response.json()
 
-      if (result.error) {
-        toast.error(result.error)
-        console.error('Join room error:', result.error)
+      if (!response.ok) {
+        toast.error(result.error || "Erro ao entrar na sala")
+        console.error('Join room error:', result)
+        if (result.debug) {
+          console.log('Debug info:', result.debug)
+        }
       } else {
         toast.success("Entrou na sala com sucesso!")
         console.log('Joined room successfully:', result.data)
+        if (result.debug) {
+          console.log('Debug info:', result.debug)
+        }
         // Refresh rooms list
         loadAvailableRooms()
+        // Redirect to game
+        window.location.href = `/game/${result.data.id}`
       }
     } catch (error) {
       console.error('Network error:', error)

@@ -57,46 +57,56 @@ export async function joinRoom(roomCode: string) {
     return { error: "Not authenticated" }
   }
 
-  console.log('Attempting to join room:', roomCode)
+  console.log('Attempting to join room:', roomCode, 'User ID:', user.id)
 
-  // Find the room - look for rooms without guest (available for joining)
-  const { data: room, error: findError } = await supabase
+  // First, let's check what rooms exist
+  const { data: allRooms, error: allRoomsError } = await supabase
     .from("game_rooms")
     .select("*")
     .eq("code", roomCode.toUpperCase())
-    .is("guest_id", null)
     .eq("is_ai_game", false)
-    .single()
 
-  if (findError || !room) {
-    console.error('Room not found or full:', findError)
+  if (allRoomsError) {
+    console.error('Error checking rooms:', allRoomsError)
+    return { error: "Error checking room availability" }
+  }
+
+  console.log('Found rooms with code:', allRooms?.length || 0, allRooms)
+
+  // Find available room (without guest)
+  const availableRoom = allRooms?.find(room => !room.guest_id)
+  
+  if (!availableRoom) {
+    console.error('No available room found with code:', roomCode)
     return { error: "Room not found or already full" }
   }
 
-  if (room.host_id === user.id) {
+  if (availableRoom.host_id === user.id) {
     console.error('User trying to join own room')
     return { error: "Cannot join your own room" }
   }
 
-  console.log('Joining room:', room.id)
+  console.log('Joining room:', availableRoom.id, 'Current status:', availableRoom.status)
 
   // Join the room
-  const { error: updateError } = await supabase
+  const { data, error: updateError } = await supabase
     .from("game_rooms")
     .update({
       guest_id: user.id,
       status: "playing",
       updated_at: new Date().toISOString(),
     })
-    .eq("id", room.id)
+    .eq("id", availableRoom.id)
+    .select()
+    .single()
 
   if (updateError) {
     console.error('Failed to join room:', updateError)
     return { error: updateError.message }
   }
 
-  console.log('Successfully joined room:', room.id)
-  return { data: room }
+  console.log('Successfully joined room:', availableRoom.id)
+  return { data }
 }
 
 export async function updateGameState(roomId: string, gameState: GameState) {

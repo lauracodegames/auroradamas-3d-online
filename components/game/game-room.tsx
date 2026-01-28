@@ -14,7 +14,7 @@ import type { GameRoom, Profile, GameState, Position, Move } from "@/lib/types"
 import { CheckersBoard } from "./checkers-board"
 import { PlayerCard } from "./player-card"
 import { GameHeader } from "./game-header"
-import { GameChat } from "./game-chat"
+import { SimpleChat } from "./simple-chat"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -348,7 +348,7 @@ export function GameRoomComponent({ room, currentUser }: GameRoomProps) {
             />
 
             {!room.is_ai_game && (
-              <GameChat roomId={room.id} currentUserId={currentUser.id} />
+              <SimpleChat roomId={room.id} currentUserId={currentUser.id} />
             )}
           </div>
         </div>
@@ -356,7 +356,7 @@ export function GameRoomComponent({ room, currentUser }: GameRoomProps) {
         {/* Mobile Chat Button */}
         {!room.is_ai_game && (
           <div className="lg:hidden w-full max-w-md">
-            <GameChat roomId={room.id} currentUserId={currentUser.id} isMobile />
+            <SimpleChat roomId={room.id} currentUserId={currentUser.id} isMobile />
           </div>
         )}
       </main>
