@@ -47,6 +47,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import useSWR from "swr"
 import { ConnectionDiagnostic } from "@/components/debug/connection-diagnostic"
+import { RoomJoinTest } from "@/components/debug/room-join-test"
 
 interface HomePageProps {
   profile: Profile
@@ -464,6 +465,9 @@ export function HomePage({ profile }: HomePageProps) {
 
           {/* Connection Diagnostic */}
           <ConnectionDiagnostic />
+          
+          {/* Room Join Test */}
+          <RoomJoinTest />
         </div>
       </main>
     </div>

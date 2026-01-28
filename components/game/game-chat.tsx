@@ -31,9 +31,13 @@ export function GameChat({ roomId, currentUserId, isMobile = false }: GameChatPr
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const loadMessages = useCallback(async () => {
+    console.log('Loading messages for room:', roomId)
     const result = await getChatMessages(roomId)
     if (result.data) {
+      console.log('Messages loaded:', result.data.length, 'messages')
       setMessages(result.data as ChatMessage[])
+    } else if (result.error) {
+      console.error('Error loading messages:', result.error)
     }
   }, [roomId])
 
@@ -55,17 +59,26 @@ export function GameChat({ roomId, currentUserId, isMobile = false }: GameChatPr
         },
         async (payload) => {
           console.log('New chat message received:', payload)
-          // Fetch the complete message with user profile
-          const { data } = await supabase
-            .from("chat_messages")
-            .select("*, user:profiles(*)")
-            .eq("id", payload.new.id)
-            .single()
-          
-          if (data) {
-            setMessages((prev) => [...prev, data as ChatMessage])
-          } else {
-            console.error('Failed to fetch complete message data')
+          try {
+            // Fetch the complete message with user profile
+            const { data } = await supabase
+              .from("chat_messages")
+              .select("*, user:profiles(*)")
+              .eq("id", payload.new.id)
+              .single()
+            
+            if (data) {
+              console.log('Complete message data:', data)
+              setMessages((prev) => {
+                const newMessages = [...prev, data as ChatMessage]
+                console.log('Updated messages list:', newMessages.length, 'messages')
+                return newMessages
+              })
+            } else {
+              console.error('Failed to fetch complete message data')
+            }
+          } catch (error) {
+            console.error('Error processing new message:', error)
           }
         }
       )
@@ -79,9 +92,15 @@ export function GameChat({ roomId, currentUserId, isMobile = false }: GameChatPr
         }
       })
 
+    // Fallback: Refresh messages every 5 seconds in case realtime fails
+    const interval = setInterval(() => {
+      loadMessages()
+    }, 5000)
+
     return () => {
       console.log('Cleaning up chat subscription')
       supabase.removeChannel(channel)
+      clearInterval(interval)
     }
   }, [roomId, loadMessages])
 

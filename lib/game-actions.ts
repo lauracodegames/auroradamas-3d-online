@@ -59,12 +59,13 @@ export async function joinRoom(roomCode: string) {
 
   console.log('Attempting to join room:', roomCode)
 
-  // Find the room
+  // Find the room - look for rooms without guest (available for joining)
   const { data: room, error: findError } = await supabase
     .from("game_rooms")
     .select("*")
     .eq("code", roomCode.toUpperCase())
-    .eq("status", "waiting")
+    .is("guest_id", null)
+    .eq("is_ai_game", false)
     .single()
 
   if (findError || !room) {
@@ -283,8 +284,10 @@ export async function getChatMessages(roomId: string) {
     .order("created_at", { ascending: true })
 
   if (error) {
+    console.error('Error fetching chat messages:', error)
     return { error: error.message }
   }
 
+  console.log('Fetched chat messages:', data?.length || 0, 'messages')
   return { data }
 }
