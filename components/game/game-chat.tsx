@@ -41,6 +41,8 @@ export function GameChat({ roomId, currentUserId, isMobile = false }: GameChatPr
     loadMessages()
 
     const supabase = createClient()
+    console.log('Setting up chat subscription for room:', roomId)
+    
     const channel = supabase
       .channel(`chat:${roomId}`)
       .on(
@@ -52,6 +54,7 @@ export function GameChat({ roomId, currentUserId, isMobile = false }: GameChatPr
           filter: `room_id=eq.${roomId}`,
         },
         async (payload) => {
+          console.log('New chat message received:', payload)
           // Fetch the complete message with user profile
           const { data } = await supabase
             .from("chat_messages")
@@ -61,12 +64,23 @@ export function GameChat({ roomId, currentUserId, isMobile = false }: GameChatPr
           
           if (data) {
             setMessages((prev) => [...prev, data as ChatMessage])
+          } else {
+            console.error('Failed to fetch complete message data')
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Chat subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to chat updates')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to chat updates')
+          toast.error('Erro de conexão com o chat')
+        }
+      })
 
     return () => {
+      console.log('Cleaning up chat subscription')
       supabase.removeChannel(channel)
     }
   }, [roomId, loadMessages])
@@ -83,24 +97,35 @@ export function GameChat({ roomId, currentUserId, isMobile = false }: GameChatPr
     let audioUrl: string | null = null
 
     if (audioBlob) {
+      console.log('Uploading audio file...')
       const supabase = createClient()
       const fileName = `audio_${Date.now()}.webm`
-      const { data, error } = await supabase.storage
-        .from("chat-audio")
-        .upload(fileName, audioBlob)
+      
+      try {
+        const { data, error } = await supabase.storage
+          .from("chat-audio")
+          .upload(fileName, audioBlob)
 
-      if (error) {
-        toast.error("Erro ao enviar áudio")
+        if (error) {
+          console.error('Audio upload error:', error)
+          toast.error("Erro ao enviar áudio: " + error.message)
+          return
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("chat-audio")
+          .getPublicUrl(data.path)
+
+        audioUrl = publicUrl
+        console.log('Audio uploaded successfully:', publicUrl)
+      } catch (error) {
+        console.error('Unexpected error uploading audio:', error)
+        toast.error("Erro inesperado ao enviar áudio")
         return
       }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("chat-audio")
-        .getPublicUrl(data.path)
-
-      audioUrl = publicUrl
     }
 
+    console.log('Sending chat message...')
     const result = await sendChatMessage(
       roomId,
       newMessage.trim() || null,
@@ -108,37 +133,63 @@ export function GameChat({ roomId, currentUserId, isMobile = false }: GameChatPr
     )
 
     if (result.error) {
+      console.error('Failed to send message:', result.error)
       toast.error(result.error)
       return
     }
 
+    console.log('Message sent successfully')
     setNewMessage("")
     setAudioBlob(null)
   }
 
   const startRecording = async () => {
     try {
+      console.log('Requesting microphone access...')
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      console.log('Microphone access granted')
+      
       const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 
       mediaRecorder.ondataavailable = (e) => {
-        audioChunksRef.current.push(e.data)
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data)
+        }
       }
 
       mediaRecorder.onstop = () => {
+        console.log('Recording stopped, processing audio...')
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/webm",
         })
         setAudioBlob(audioBlob)
         stream.getTracks().forEach((track) => track.stop())
+        console.log('Audio processing completed')
+      }
+
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event)
+        toast.error('Erro na gravação de áudio')
       }
 
       mediaRecorder.start()
       setIsRecording(true)
-    } catch {
-      toast.error("Erro ao acessar microfone")
+      console.log('Recording started')
+    } catch (error) {
+      console.error('Error accessing microphone:', error)
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          toast.error('Permissão de microfone negada. Permita o acesso ao microfone nas configurações do navegador.')
+        } else if (error.name === 'NotFoundError') {
+          toast.error('Nenhum microfone encontrado.')
+        } else {
+          toast.error('Erro ao acessar microfone: ' + error.message)
+        }
+      } else {
+        toast.error('Erro desconhecido ao acessar microfone')
+      }
     }
   }
 

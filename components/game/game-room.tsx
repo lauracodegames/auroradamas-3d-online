@@ -53,6 +53,8 @@ export function GameRoomComponent({ room, currentUser }: GameRoomProps) {
     if (room.is_ai_game) return
 
     const supabase = createClient()
+    console.log('Setting up realtime subscription for room:', room.id)
+    
     const channel = supabase
       .channel(`room:${room.id}`)
       .on(
@@ -64,6 +66,7 @@ export function GameRoomComponent({ room, currentUser }: GameRoomProps) {
           filter: `id=eq.${room.id}`,
         },
         (payload) => {
+          console.log('Game state update received:', payload)
           const newState = payload.new.game_state as GameState
           setGameState(newState)
 
@@ -72,9 +75,18 @@ export function GameRoomComponent({ room, currentUser }: GameRoomProps) {
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to room updates')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to room updates')
+          toast.error('Erro de conexão com a sala')
+        }
+      })
 
     return () => {
+      console.log('Cleaning up subscription')
       supabase.removeChannel(channel)
     }
   }, [room.id, room.is_ai_game])
@@ -187,7 +199,16 @@ export function GameRoomComponent({ room, currentUser }: GameRoomProps) {
 
     // Update server state for multiplayer
     if (!room.is_ai_game) {
-      await updateGameState(room.id, newState)
+      console.log('Updating game state on server...')
+      const result = await updateGameState(room.id, newState)
+      if (result.error) {
+        console.error('Failed to update game state:', result.error)
+        toast.error('Erro ao sincronizar jogada')
+        // Revert state on error
+        setGameState(gameState)
+      } else {
+        console.log('Game state updated successfully')
+      }
     }
 
     if (newState.winner) {
@@ -289,7 +310,7 @@ export function GameRoomComponent({ room, currentUser }: GameRoomProps) {
               captured={leftPlayer.captured}
               isCurrentTurn={gameState.currentPlayer === leftPlayer.color}
               isAI={room.is_ai_game}
-              aiDifficulty={room.ai_difficulty || undefined}
+              aiDifficulty={room.ai_difficulty as "facil" | "medio" | "dificil" | "impossivel" | undefined}
             />
           </div>
 

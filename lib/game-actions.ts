@@ -53,8 +53,11 @@ export async function joinRoom(roomCode: string) {
   } = await supabase.auth.getUser()
 
   if (!user) {
+    console.error('User not authenticated for joinRoom')
     return { error: "Not authenticated" }
   }
+
+  console.log('Attempting to join room:', roomCode)
 
   // Find the room
   const { data: room, error: findError } = await supabase
@@ -65,12 +68,16 @@ export async function joinRoom(roomCode: string) {
     .single()
 
   if (findError || !room) {
+    console.error('Room not found or full:', findError)
     return { error: "Room not found or already full" }
   }
 
   if (room.host_id === user.id) {
+    console.error('User trying to join own room')
     return { error: "Cannot join your own room" }
   }
+
+  console.log('Joining room:', room.id)
 
   // Join the room
   const { error: updateError } = await supabase
@@ -78,13 +85,16 @@ export async function joinRoom(roomCode: string) {
     .update({
       guest_id: user.id,
       status: "playing",
+      updated_at: new Date().toISOString(),
     })
     .eq("id", room.id)
 
   if (updateError) {
+    console.error('Failed to join room:', updateError)
     return { error: updateError.message }
   }
 
+  console.log('Successfully joined room:', room.id)
   return { data: room }
 }
 

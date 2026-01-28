@@ -12,7 +12,7 @@ interface PlayerCardProps {
   captured: number
   isCurrentTurn: boolean
   isAI?: boolean
-  aiDifficulty?: "easy" | "medium" | "hard"
+  aiDifficulty?: "easy" | "medium" | "hard" | "facil" | "medio" | "dificil" | "impossivel"
 }
 
 export function PlayerCard({
@@ -25,7 +25,12 @@ export function PlayerCard({
   aiDifficulty,
 }: PlayerCardProps) {
   const displayName = isAI
-    ? `IA ${aiDifficulty === "easy" ? "Fácil" : aiDifficulty === "medium" ? "Médio" : "Difícil"}`
+    ? `IA ${
+        aiDifficulty === "easy" || aiDifficulty === "facil" ? "Fácil" : 
+        aiDifficulty === "medium" || aiDifficulty === "medio" ? "Médio" : 
+        aiDifficulty === "hard" || aiDifficulty === "dificil" || aiDifficulty === "impossivel" ? "Difícil" : 
+        "Médio"
+      }`
     : player?.username || "Aguardando..."
 
   const initials = isAI
