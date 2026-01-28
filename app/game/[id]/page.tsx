@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect, notFound } from "next/navigation"
-import { GameRoomComponent } from "@/components/game/game-room"
-import type { Profile, GameRoom } from "@/lib/types"
+import { GameBoard } from "@/components/game/game-board"
+import type { Profile } from "@/lib/types"
 
 interface GamePageProps {
   params: Promise<{ id: string }>
@@ -35,16 +35,10 @@ export default async function GamePage({ params }: GamePageProps) {
     redirect("/banned")
   }
 
-  // Get game room
+  // Get game room to verify access
   const { data: room, error } = await supabase
     .from("game_rooms")
-    .select(
-      `
-      *,
-      host:profiles!game_rooms_host_id_fkey(*),
-      guest:profiles!game_rooms_guest_id_fkey(*)
-    `
-    )
+    .select("host_id, guest_id, is_ai_game")
     .eq("id", id)
     .single()
 
@@ -60,10 +54,5 @@ export default async function GamePage({ params }: GamePageProps) {
     redirect("/")
   }
 
-  return (
-    <GameRoomComponent
-      room={room as GameRoom}
-      currentUser={profile as Profile}
-    />
-  )
+  return <GameBoard roomId={id} currentUser={profile as Profile} />
 }

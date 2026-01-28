@@ -7,6 +7,7 @@ export type ThemeColor = "classic" | "wood" | "neon" | "ocean"
 export interface Piece {
   color: PieceColor
   type: PieceType
+  position?: Position  // Adicionar position para compatibilidade
 }
 
 export interface Position {
@@ -31,6 +32,9 @@ export interface GameState {
   validMoves: Move[]
   winner: PieceColor | "draw" | null
   moveHistory: Move[]
+  // Adicionar propriedades para compatibilidade
+  pieces: Piece[]
+  captured: Piece[]
 }
 
 export interface Profile {
@@ -60,6 +64,8 @@ export interface GameRoom {
   winner_id: string | null
   is_ai_game: boolean
   ai_difficulty: "facil" | "medio" | "dificil" | "impossivel" | null
+  current_turn: string | null  // ID do jogador atual
+  game_status: "waiting" | "playing" | "finished"  // Status do jogo
   created_at: string
   updated_at: string
   host?: Profile

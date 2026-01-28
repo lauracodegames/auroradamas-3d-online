@@ -21,38 +21,26 @@ export function SimpleChat({ roomId, currentUserId, isMobile = false }: SimpleCh
   const [isExpanded, setIsExpanded] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [lastMessageCount, setLastMessageCount] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const loadMessages = useCallback(async () => {
     console.log('Loading messages for room:', roomId)
-    setIsLoading(true)
     const result = await getChatMessages(roomId)
     if (result.data) {
-      const messageCount = result.data.length
-      console.log('Messages loaded:', messageCount, 'messages')
+      console.log('Messages loaded:', result.data.length, 'messages')
       setMessages(result.data as ChatMessage[])
-      
-      // Show notification if new messages arrived
-      if (messageCount > lastMessageCount && lastMessageCount > 0) {
-        const newMessagesCount = messageCount - lastMessageCount
-        toast.success(`${newMessagesCount} nova(s) mensagem(ns)`)
-      }
-      setLastMessageCount(messageCount)
     } else if (result.error) {
       console.error('Error loading messages:', result.error)
     }
-    setIsLoading(false)
-  }, [roomId, lastMessageCount])
+  }, [roomId])
 
   useEffect(() => {
     loadMessages()
 
-    // Poll every 2 seconds for new messages
+    // Poll every 10 seconds for new messages (background, very infrequent)
     const interval = setInterval(() => {
       loadMessages()
-    }, 2000)
+    }, 10000)
 
     return () => {
       clearInterval(interval)
@@ -111,41 +99,24 @@ export function SimpleChat({ roomId, currentUserId, isMobile = false }: SimpleCh
     )}>
       <div className="p-3 border-b border-border flex items-center justify-between">
         <h3 className="font-semibold text-sm text-foreground">Chat da Partida</h3>
-        <div className="flex items-center gap-2">
+        {isMobile && (
           <Button
             variant="ghost"
             size="sm"
             className="h-6 px-2 text-xs"
-            onClick={loadMessages}
-            disabled={isLoading}
+            onClick={() => setIsExpanded(false)}
           >
-            <RefreshCw className={cn("w-3 h-3", isLoading && "animate-spin")} />
+            Fechar
           </Button>
-          {isMobile && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs"
-              onClick={() => setIsExpanded(false)}
-            >
-              Fechar
-            </Button>
-          )}
-        </div>
+        )}
       </div>
 
       <ScrollArea className="flex-1 p-3" ref={scrollRef}>
         <div className="space-y-3">
-          {messages.length === 0 && !isLoading && (
+          {messages.length === 0 && (
             <p className="text-center text-muted-foreground text-sm">
               Nenhuma mensagem ainda. Seja o primeiro a falar!
             </p>
-          )}
-          
-          {isLoading && (
-            <div className="flex justify-center">
-              <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
-            </div>
           )}
           
           {messages.map((msg) => {
@@ -195,13 +166,12 @@ export function SimpleChat({ roomId, currentUserId, isMobile = false }: SimpleCh
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             className="flex-1 bg-input border-border"
-            disabled={isLoading}
           />
           <Button 
             size="icon" 
             onClick={handleSend} 
             className="shrink-0"
-            disabled={isLoading || !newMessage.trim()}
+            disabled={!newMessage.trim()}
           >
             <Send className="w-4 h-4" />
           </Button>

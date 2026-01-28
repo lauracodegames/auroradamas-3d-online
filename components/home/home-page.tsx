@@ -47,7 +47,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import useSWR from "swr"
 import { ConnectionDiagnostic } from "@/components/debug/connection-diagnostic"
-import { RoomJoinTest } from "@/components/debug/room-join-test"
+import { QuickJoinTest } from "@/components/debug/quick-join-test"
 
 interface HomePageProps {
   profile: Profile
@@ -222,20 +222,37 @@ export function HomePage({ profile }: HomePageProps) {
 
             {/* Game Modes */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {/* Create Room */}
-              <Dialog open={showCreateRoom} onOpenChange={setShowCreateRoom}>
+              {/* Multiplayer Lobby */}
+              <Card className="bg-card border-border hover:border-primary active:scale-[0.98] transition-all cursor-pointer group">
+                <CardContent className="p-4 sm:p-6 flex flex-col items-center gap-3 sm:gap-4" onClick={() => router.push('/multiplayer')}>
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="font-semibold text-foreground text-sm sm:text-base">
+                      Multiplayer
+                    </h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                      Encontre salas ou crie uma
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* AI Game */}
+              <Dialog open={showAIGame} onOpenChange={setShowAIGame}>
                 <DialogTrigger asChild>
                   <Card className="bg-card border-border hover:border-primary active:scale-[0.98] transition-all cursor-pointer group">
                     <CardContent className="p-4 sm:p-6 flex flex-col items-center gap-3 sm:gap-4">
                       <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                        <Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+                        <Bot className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                       </div>
                       <div className="text-center">
                         <h3 className="font-semibold text-foreground text-sm sm:text-base">
-                          Criar Sala
+                          Jogar contra IA
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                          Jogue contra um amigo
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          Desafie nossa inteligencia artificial
                         </p>
                       </div>
                     </CardContent>
@@ -466,8 +483,8 @@ export function HomePage({ profile }: HomePageProps) {
           {/* Connection Diagnostic */}
           <ConnectionDiagnostic />
           
-          {/* Room Join Test */}
-          <RoomJoinTest />
+          {/* Quick Join Test */}
+          <QuickJoinTest />
         </div>
       </main>
     </div>

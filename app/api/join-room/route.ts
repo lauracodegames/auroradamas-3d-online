@@ -6,43 +6,58 @@ export async function POST(request: NextRequest) {
     const { roomCode } = await request.json()
     
     if (!roomCode) {
+      console.error('API: No room code provided')
       return NextResponse.json({ error: "Room code is required" }, { status: 400 })
     }
+
+    console.log('API: Attempting to join room with code:', roomCode)
 
     const supabase = await createClient()
     
     // Test basic connection
-    console.log('Testing Supabase connection...')
-    const { data: { user } } = await supabase.auth.getUser()
+    console.log('API: Testing Supabase connection...')
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!user) {
+    if (authError || !user) {
+      console.error('API: Authentication error:', authError)
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    console.log('User authenticated:', user.id)
+    console.log('API: User authenticated:', user.id, user.email)
 
-    // Check available rooms
-    const { data: rooms, error } = await supabase
+    // Check available rooms with detailed logging
+    console.log('API: Checking available rooms...')
+    const { data: allRooms, error: roomsError } = await supabase
       .from("game_rooms")
       .select("*")
       .eq("code", roomCode.toUpperCase())
       .eq("is_ai_game", false)
 
-    if (error) {
-      console.error('Database error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (roomsError) {
+      console.error('API: Database error checking rooms:', roomsError)
+      return NextResponse.json({ error: "Error checking room availability: " + roomsError.message }, { status: 500 })
     }
 
-    console.log('Found rooms:', rooms?.length || 0)
+    console.log('API: Found rooms:', allRooms?.length || 0)
+    if (allRooms) {
+      console.log('API: Room details:', allRooms.map(r => ({
+        id: r.id,
+        code: r.code,
+        host_id: r.host_id,
+        guest_id: r.guest_id,
+        status: r.status
+      })))
+    }
 
-    const availableRoom = rooms?.find(room => !room.guest_id)
+    const availableRoom = allRooms?.find(room => !room.guest_id)
     
     if (!availableRoom) {
+      console.error('API: No available room found')
       return NextResponse.json({ 
         error: "Room not found or already full",
         debug: {
-          roomsFound: rooms?.length || 0,
-          rooms: rooms?.map(r => ({
+          roomsFound: allRooms?.length || 0,
+          rooms: allRooms?.map(r => ({
             id: r.id,
             code: r.code,
             host_id: r.host_id,
@@ -54,10 +69,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (availableRoom.host_id === user.id) {
+      console.error('API: User trying to join own room')
       return NextResponse.json({ error: "Cannot join your own room" }, { status: 400 })
     }
 
-    // Join room
+    console.log('API: Joining room:', availableRoom.id)
+
+    // Join room with detailed error handling
     const { data, error: updateError } = await supabase
       .from("game_rooms")
       .update({
@@ -70,23 +88,23 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (updateError) {
-      console.error('Update error:', updateError)
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+      console.error('API: Update error:', updateError)
+      return NextResponse.json({ error: "Failed to join room: " + updateError.message }, { status: 500 })
     }
 
-    console.log('Successfully joined room:', data.id)
-
+    console.log('API: Successfully joined room:', data.id)
     return NextResponse.json({ 
       success: true,
       data,
       debug: {
         userId: user.id,
-        roomId: data.id
+        roomId: data.id,
+        roomCode: data.code
       }
     })
 
   } catch (error) {
-    console.error('API error:', error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error('API: Unhandled error:', error)
+    return NextResponse.json({ error: "Internal server error: " + (error instanceof Error ? error.message : "Unknown error") }, { status: 500 })
   }
 }
